@@ -270,9 +270,9 @@ export default function CotisationTracker() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
-          <div className="bg-indigo-10 rounded-lg p-3">
+          <div className="bg-green-100 rounded-lg p-3">
             <p className="text-xs text-gray-600 mb-1">Progression globale</p>
-            <p className="text-xl font-bold text-indigo-600">
+            <p className="text-xl font-bold text-green-700">
               {globalStats.progression}%
             </p>
           </div>
