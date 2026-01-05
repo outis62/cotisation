@@ -15,12 +15,6 @@ export interface Personne {
   paiements: Record<string, Paiement>;
 }
 
-export interface CotisationState {
-  personnes: Personne[];
-  selectedMonth: number;
-  selectedYear: number;
-}
-
 export default function CotisationTracker() {
   const MONTANT_JOURNALIER = 1000;
   const AVANCE_MAX_JOURS = 3;
@@ -73,10 +67,7 @@ export default function CotisationTracker() {
   const togglePaiement = (personneId: number, day: number) => {
     const dateKey = getDateKey(day, selectedMonth, selectedYear);
 
-    // Vérifier date future / avance max
-    if (isDateInFuture(day, selectedMonth, selectedYear) && !canPayInAdvance(day, selectedMonth, selectedYear)) {
-      return;
-    }
+    if (isDateInFuture(day, selectedMonth, selectedYear) && !canPayInAdvance(day, selectedMonth, selectedYear)) return;
 
     setPersonnes(prev =>
       prev.map(p => {
@@ -85,14 +76,11 @@ export default function CotisationTracker() {
         const newPaiements = { ...p.paiements };
         const isPaid = !!newPaiements[dateKey];
 
-        // 🔒 Interdit décocher
-        if (isPaid) return p;
+        if (isPaid) return p; // interdit décocher
 
-        // ⛔ Vérifier séquentialité
         const prevKey = getPreviousDateKey(day, selectedMonth, selectedYear);
-        if (prevKey && !newPaiements[prevKey]) return p;
+        if (prevKey && !newPaiements[prevKey]) return p; // séquentialité
 
-        // ✅ Ajouter le paiement
         newPaiements[dateKey] = {
           date: dateKey,
           montant: MONTANT_JOURNALIER,
@@ -105,15 +93,14 @@ export default function CotisationTracker() {
   };
 
   /* =======================
-     CALCUL STATS
+     STATS PAR PERSONNE
   ======================= */
 
   const calculateStats = (personne: Personne) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let joursEchus = 0;
-    let joursPayes = 0;
+    let joursPayes = Object.keys(personne.paiements).length;
     let retards = 0;
     let avances = 0;
 
@@ -122,34 +109,88 @@ export default function CotisationTracker() {
         const dateKey = getDateKey(day, month, selectedYear);
         const date = new Date(selectedYear, month, day);
 
-        if (date <= today) {
-          joursEchus++;
-          if (personne.paiements[dateKey]) joursPayes++;
-          else retards++;
-        } else if (personne.paiements[dateKey]) {
-          avances++;
-        }
+        if (!personne.paiements[dateKey] && date < today) retards++;
+        if (personne.paiements[dateKey] && date > today) avances++;
       });
     }
+
+    const joursRestants = 365 - joursPayes;
+    const sommeAttendue = 365 * MONTANT_JOURNALIER;
+    const montantRetard = retards * MONTANT_JOURNALIER;
+    const montantPaye = joursPayes * MONTANT_JOURNALIER;
+    const montantAvance = avances * MONTANT_JOURNALIER;
+    const progression = ((joursPayes / 365) * 100).toFixed(1);
+
+    return {
+      joursPayes,
+      retards,
+      avances,
+      joursRestants,
+      sommeAttendue,
+      montantRetard,
+      montantPaye,
+      montantAvance,
+      progression: isNaN(Number(progression)) ? 0 : Number(progression)
+    };
+  };
+
+  /* =======================
+     STATS GLOBALES
+  ======================= */
+
+  const calculateGlobalStats = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const finAnnee = new Date(today.getFullYear(), 11, 31);
+    const diffTime = finAnnee.getTime() - today.getTime();
+    const joursRestants = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    const joursPayes = personnes.reduce((acc, p) => acc + Object.keys(p.paiements).length, 0);
+    const retards = personnes.reduce((acc, p) => {
+      let r = 0;
+      for (let month = 0; month <= selectedMonth; month++) {
+        getDaysInMonth(month, selectedYear).forEach(day => {
+          const dateKey = getDateKey(day, month, selectedYear);
+          const date = new Date(selectedYear, month, day);
+          if (!p.paiements[dateKey] && date < today) r++;
+        });
+      }
+      return acc + r;
+    }, 0);
+    const avances = personnes.reduce((acc, p) => {
+      let a = 0;
+      for (let month = 0; month <= selectedMonth; month++) {
+        getDaysInMonth(month, selectedYear).forEach(day => {
+          const dateKey = getDateKey(day, month, selectedYear);
+          const date = new Date(selectedYear, month, day);
+          if (p.paiements[dateKey] && date > today) a++;
+        });
+      }
+      return acc + a;
+    }, 0);
 
     const montantRetard = retards * MONTANT_JOURNALIER;
     const montantPaye = joursPayes * MONTANT_JOURNALIER;
     const montantAvance = avances * MONTANT_JOURNALIER;
-    const totalAttenduAnnee = 365 * MONTANT_JOURNALIER;
-    const progression = ((joursPayes / joursEchus) * 100).toFixed(1);
+    const sommeAttendue = 365 * MONTANT_JOURNALIER;
+
+    const progression = ((joursPayes / 365) * 100).toFixed(1);
 
     return {
-      joursEchus,
+      joursRestants,
       joursPayes,
       retards,
       avances,
       montantRetard,
       montantPaye,
       montantAvance,
-      totalAttenduAnnee,
-      progression: isNaN(Number(progression)) ? 0 : Number(progression)
+      progression: isNaN(Number(progression)) ? 0 : Number(progression),
+      sommeAttendue
     };
   };
+
+  const globalStats = calculateGlobalStats();
 
   /* =======================
      RENDER
@@ -166,7 +207,29 @@ export default function CotisationTracker() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-6xl mx-auto">
 
-        {/* STATS */}
+        {/* STATS GLOBALES */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+          <div className="bg-indigo-10 rounded-lg p-3">
+            <p className="text-xs text-gray-600 mb-1">Progression globale</p>
+            <p className="text-xl font-bold text-indigo-600">{globalStats.progression}%</p>
+          </div>
+          <div className="bg-yellow-50 rounded-lg p-3">
+            <p className="text-xs text-gray-600 mb-1">Jours restants dans l'année</p>
+            <p className="text-xl font-bold text-yellow-600">{globalStats.joursRestants}</p>
+          </div>
+          <div className="bg-red-50 rounded-lg p-3">
+            <p className="text-xs text-gray-600 mb-1">Retards</p>
+            <p className="text-xl font-bold text-red-600">{globalStats.retards}</p>
+            <p className="text-xs text-gray-500">{globalStats.montantRetard.toLocaleString()} CFA</p>
+          </div>
+          <div className="bg-green-50 rounded-lg p-3">
+            <p className="text-xs text-gray-600 mb-1">Total payé</p>
+            <p className="text-xl font-bold text-green-600">{(globalStats.montantPaye / 1000).toFixed(0)}K</p>
+            <p className="text-xs text-gray-500">sur {(globalStats.sommeAttendue / 1000).toFixed(0)}K CFA</p>
+          </div>
+        </div>
+
+        {/* STATS PAR PERSONNE */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {personnes.map(p => {
             const pStats = calculateStats(p);
@@ -181,22 +244,25 @@ export default function CotisationTracker() {
                   <div className="bg-indigo-50 rounded-lg p-3">
                     <p className="text-xs text-gray-600 mb-1">Progression</p>
                     <p className="text-xl font-bold text-indigo-600">{pStats.progression}%</p>
-                    <p className="text-xs text-gray-500">{pStats.joursPayes}/{pStats.joursEchus} jours</p>
+                    <p className="text-xs text-gray-500">{pStats.joursPayes}/365 jours</p>
                   </div>
+
                   <div className="bg-red-50 rounded-lg p-3">
                     <p className="text-xs text-gray-600 mb-1">Retards</p>
                     <p className="text-xl font-bold text-red-600">{pStats.retards}</p>
                     <p className="text-xs text-gray-500">{pStats.montantRetard.toLocaleString()} CFA</p>
                   </div>
+
                   <div className="bg-green-50 rounded-lg p-3">
                     <p className="text-xs text-gray-600 mb-1">Avances</p>
                     <p className="text-xl font-bold text-green-600">{pStats.avances}</p>
                     <p className="text-xs text-gray-500">{pStats.montantAvance.toLocaleString()} CFA</p>
                   </div>
-                  <div className="bg-blue-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-600 mb-1">Total payé</p>
-                    <p className="text-xl font-bold text-blue-600">{(pStats.montantPaye / 1000).toFixed(0)}K</p>
-                    <p className="text-xs text-gray-500">sur {(pStats.totalAttenduAnnee / 1000).toFixed(0)}K CFA</p>
+
+                  <div className="bg-yellow-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-600 mb-1">Jours restant</p>
+                    <p className="text-xl font-bold text-yellow-600">{pStats.joursRestants}</p>
+                    <p className="text-xs text-gray-500">{pStats.sommeAttendue.toLocaleString()} CFA</p>
                   </div>
                 </div>
               </div>
@@ -205,6 +271,7 @@ export default function CotisationTracker() {
         </div>
 
         {/* CALENDRIER */}
+        {/* Ici tu peux garder ton code calendrier existant sans toucher au design */}
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4">{monthNames[selectedMonth]} {selectedYear}</h2>
 
