@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, CheckCircle } from 'lucide-react';
 
 export interface Paiement {
@@ -19,13 +19,26 @@ export default function CotisationTracker() {
   const MONTANT_JOURNALIER = 1000;
   const AVANCE_MAX_JOURS = 3;
 
-  const [personnes, setPersonnes] = useState<Personne[]>([
-    { id: 1, nom: 'Boureima Zabre', paiements: {} },
-    { id: 2, nom: 'Idrissa Sawadogo', paiements: {} }
-  ]);
+  /* =======================
+     INIT ET LOCALSTORAGE
+  ======================= */
 
+  const loadPersonnes = (): Personne[] => {
+    const stored = localStorage.getItem('cotisationPersonnes');
+    if (stored) return JSON.parse(stored);
+    return [
+      { id: 1, nom: 'Boureima Zabre', paiements: {} },
+      { id: 2, nom: 'Idrissa Sawadogo', paiements: {} }
+    ];
+  };
+
+  const [personnes, setPersonnes] = useState<Personne[]>(loadPersonnes);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear] = useState<number>(new Date().getFullYear());
+
+  useEffect(() => {
+    localStorage.setItem('cotisationPersonnes', JSON.stringify(personnes));
+  }, [personnes]);
 
   /* =======================
      UTILS
@@ -207,7 +220,9 @@ export default function CotisationTracker() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-6xl mx-auto">
 
-        {/* STATS GLOBALES */}
+        {/* Ici tu peux intégrer ton code calendrier et stats comme avant */}
+        {/* Le localStorage est déjà pris en compte, les cases resteront cochées après refresh */}
+          {/* STATS GLOBALES */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
           <div className="bg-indigo-10 rounded-lg p-3">
             <p className="text-xs text-gray-600 mb-1">Progression globale</p>
@@ -371,6 +386,7 @@ export default function CotisationTracker() {
             })}
           </div>
         </div>
+
       </div>
     </div>
   );
