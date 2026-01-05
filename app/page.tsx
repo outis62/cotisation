@@ -20,21 +20,25 @@ export default function CotisationTracker() {
   const AVANCE_MAX_JOURS = 3;
 
   /* =======================
-     INIT ET LOCALSTORAGE
+     ETAT INITIAL
   ======================= */
+  const [personnes, setPersonnes] = useState<Personne[]>([
+    { id: 1, nom: 'Boureima Zabre', paiements: {} },
+    { id: 2, nom: 'Idrissa Sawadogo', paiements: {} }
+  ]);
 
-  const loadPersonnes = (): Personne[] => {
-    const stored = localStorage.getItem('cotisationPersonnes');
-    if (stored) return JSON.parse(stored);
-    return [
-      { id: 1, nom: 'Boureima Zabre', paiements: {} },
-      { id: 2, nom: 'Idrissa Sawadogo', paiements: {} }
-    ];
-  };
-
-  const [personnes, setPersonnes] = useState<Personne[]>(loadPersonnes);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear] = useState<number>(new Date().getFullYear());
+
+  /* =======================
+     PERSISTENCE LOCALSTORAGE
+  ======================= */
+  useEffect(() => {
+    const stored = localStorage.getItem('cotisationPersonnes');
+    if (stored) {
+      setPersonnes(JSON.parse(stored));
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('cotisationPersonnes', JSON.stringify(personnes));
@@ -43,7 +47,6 @@ export default function CotisationTracker() {
   /* =======================
      UTILS
   ======================= */
-
   const getDaysInMonth = (month: number, year: number): number[] =>
     Array.from({ length: new Date(year, month + 1, 0).getDate() }, (_, i) => i + 1);
 
@@ -76,7 +79,6 @@ export default function CotisationTracker() {
      - Interdit décocher
      - Respect séquentialité
   ======================= */
-
   const togglePaiement = (personneId: number, day: number) => {
     const dateKey = getDateKey(day, selectedMonth, selectedYear);
 
@@ -108,7 +110,6 @@ export default function CotisationTracker() {
   /* =======================
      STATS PAR PERSONNE
   ======================= */
-
   const calculateStats = (personne: Personne) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -150,14 +151,12 @@ export default function CotisationTracker() {
   /* =======================
      STATS GLOBALES
   ======================= */
-
   const calculateGlobalStats = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const finAnnee = new Date(today.getFullYear(), 11, 31);
-    const diffTime = finAnnee.getTime() - today.getTime();
-    const joursRestants = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const joursRestants = Math.ceil((finAnnee.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
     const joursPayes = personnes.reduce((acc, p) => acc + Object.keys(p.paiements).length, 0);
     const retards = personnes.reduce((acc, p) => {
@@ -187,7 +186,6 @@ export default function CotisationTracker() {
     const montantPaye = joursPayes * MONTANT_JOURNALIER;
     const montantAvance = avances * MONTANT_JOURNALIER;
     const sommeAttendue = 365 * MONTANT_JOURNALIER;
-
     const progression = ((joursPayes / 365) * 100).toFixed(1);
 
     return {
@@ -219,9 +217,30 @@ export default function CotisationTracker() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-6xl mx-auto">
+        {/* =======================
+             STATS GLOBALES
+        ======================= */}
+        <div className="mb-6 p-4 bg-white rounded-lg shadow-lg grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-indigo-50 p-3 rounded-lg text-center">
+            <p className="text-xs text-gray-600">Jours restants</p>
+            <p className="text-xl font-bold text-indigo-600">{globalStats.joursRestants}</p>
+          </div>
+          <div className="bg-blue-50 p-3 rounded-lg text-center">
+            <p className="text-xs text-gray-600">Jours payés</p>
+            <p className="text-xl font-bold text-blue-600">{globalStats.joursPayes}</p>
+          </div>
+          <div className="bg-red-50 p-3 rounded-lg text-center">
+            <p className="text-xs text-gray-600">Retards</p>
+            <p className="text-xl font-bold text-red-600">{globalStats.retards}</p>
+          </div>
+          <div className="bg-green-50 p-3 rounded-lg text-center">
+            <p className="text-xs text-gray-600">Avances</p>
+            <p className="text-xl font-bold text-green-600">{globalStats.avances}</p>
+          </div>
+        </div>
 
-        {/* Ici tu peux intégrer ton code calendrier et stats comme avant */}
-        {/* Le localStorage est déjà pris en compte, les cases resteront cochées après refresh */}
+        {/* Ici tu peux copier ton code calendrier et stats par personne existants */}
+        {/* Toutes les règles précédentes (interdiction décocher, séquentialité) restent valides */}
           {/* STATS GLOBALES */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
           <div className="bg-indigo-10 rounded-lg p-3">
@@ -386,7 +405,6 @@ export default function CotisationTracker() {
             })}
           </div>
         </div>
-
       </div>
     </div>
   );
