@@ -20,8 +20,8 @@ export default function CotisationTracker() {
   const AVANCE_MAX_JOURS = 3;
 
   const [personnes, setPersonnes] = useState<Personne[]>([
-    { id: 1, nom: "Boureima Zabre", paiements: {} },
-    { id: 2, nom: "Idrissa Sawadogo", paiements: {} },
+    { id: 1, nom: "Zabre Boureima", paiements: {} },
+    { id: 2, nom: "Sawadogo Idrissa", paiements: {} },
     { id: 3, nom: "Zabre Daouda", paiements: {} },
   ]);
 
