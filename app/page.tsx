@@ -197,8 +197,8 @@ export default function CotisationTracker() {
     const montantRetard = retards * MONTANT_JOURNALIER;
     const montantPaye = joursPayes * MONTANT_JOURNALIER;
     const montantAvance = avances * MONTANT_JOURNALIER;
-    const sommeAttendue = 365 * MONTANT_JOURNALIER;
-    const progression = ((joursPayes / 365) * 100).toFixed(1);
+    const sommeAttendue = 365 * 3 * MONTANT_JOURNALIER;
+    const progression = ((joursPayes / (365 * 3)) * 100).toFixed(1);
 
     return {
       joursRestants,
@@ -297,15 +297,15 @@ export default function CotisationTracker() {
           <div className="bg-green-50 rounded-lg p-3">
             <p className="text-xs text-gray-600 mb-1">Total payé</p>
             <p className="text-xl font-bold text-green-600">
-              {(globalStats.montantPaye / 1000).toFixed(0)}K
+              {globalStats.montantPaye.toLocaleString()} CFA
             </p>
-            <p className="text-xs text-gray-500">
-              sur {(globalStats.sommeAttendue / 1000).toFixed(0)}K CFA
+            <p className="text-xs text-gray-500 font-bold ">
+              sur {globalStats.sommeAttendue.toLocaleString()} CFA
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {personnes.map((p) => {
             const pStats = calculateStats(p);
             return (
