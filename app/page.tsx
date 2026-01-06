@@ -22,6 +22,7 @@ export default function CotisationTracker() {
   const [personnes, setPersonnes] = useState<Personne[]>([
     { id: 1, nom: "Boureima Zabre", paiements: {} },
     { id: 2, nom: "Idrissa Sawadogo", paiements: {} },
+    { id: 3, nom: "Zabre Daouda", paiements: {} },
   ]);
 
   const [selectedMonth, setSelectedMonth] = useState<number>(
