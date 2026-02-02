@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Calendar, CheckCircle } from "lucide-react";
+import { Calendar, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface Paiement {
   date: string;
@@ -25,10 +25,9 @@ export default function CotisationTracker() {
     { id: 3, nom: "Zabre Daouda", paiements: {} },
   ]);
 
-  const [selectedMonth, setSelectedMonth] = useState<number>(
-    new Date().getMonth()
-  );
-  const [selectedYear] = useState<number>(new Date().getFullYear());
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear());
 
   useEffect(() => {
     const stored = localStorage.getItem("cotisationPersonnes");
@@ -128,7 +127,7 @@ export default function CotisationTracker() {
     let retards = 0;
     let avances = 0;
 
-    for (let month = 0; month <= selectedMonth; month++) {
+    for (let month = 0; month <= 11; month++) {
       getDaysInMonth(month, selectedYear).forEach((day) => {
         const dateKey = getDateKey(day, month, selectedYear);
         const date = new Date(selectedYear, month, day);
@@ -173,7 +172,7 @@ export default function CotisationTracker() {
     );
     const retards = personnes.reduce((acc, p) => {
       let r = 0;
-      for (let month = 0; month <= selectedMonth; month++) {
+      for (let month = 0; month <= 11; month++) {
         getDaysInMonth(month, selectedYear).forEach((day) => {
           const dateKey = getDateKey(day, month, selectedYear);
           const date = new Date(selectedYear, month, day);
@@ -184,7 +183,7 @@ export default function CotisationTracker() {
     }, 0);
     const avances = personnes.reduce((acc, p) => {
       let a = 0;
-      for (let month = 0; month <= selectedMonth; month++) {
+      for (let month = 0; month <= 11; month++) {
         getDaysInMonth(month, selectedYear).forEach((day) => {
           const dateKey = getDateKey(day, month, selectedYear);
           const date = new Date(selectedYear, month, day);
@@ -212,6 +211,38 @@ export default function CotisationTracker() {
       sommeAttendue,
     };
   };
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    setSelectedMonth((prevMonth) => {
+      setSelectedYear((prevYear) => {
+        if (direction === 'prev') {
+          if (prevMonth === 0) {
+            return prevYear - 1;
+          }
+          return prevYear;
+        } else {
+          if (prevMonth === 11) {
+            return prevYear + 1;
+          }
+          return prevYear;
+        }
+      });
+
+      if (direction === 'prev') {
+        return prevMonth === 0 ? 11 : prevMonth - 1;
+      } else {
+        return prevMonth === 11 ? 0 : prevMonth + 1;
+      }
+    });
+  };
+
+  const goToCurrentMonth = () => {
+    setSelectedMonth(currentDate.getMonth());
+    setSelectedYear(currentDate.getFullYear());
+  };
+
+  const isCurrentMonth = selectedMonth === currentDate.getMonth() && 
+                         selectedYear === currentDate.getFullYear();
 
   const globalStats = calculateGlobalStats();
 
@@ -313,7 +344,7 @@ export default function CotisationTracker() {
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                   <span
                     className={`w-3 h-3 rounded-full ${
-                      p.id === 1 ? "bg-indigo-500" : "bg-purple-500"
+                      p.id === 1 ? "bg-indigo-500" : p.id === 2 ? "bg-purple-500" : "bg-pink-500"
                     }`}
                   ></span>
                   {p.nom}
@@ -366,9 +397,35 @@ export default function CotisationTracker() {
         </div>
 
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">
-            {monthNames[selectedMonth]} {selectedYear}
-          </h2>
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => navigateMonth('prev')}
+              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold text-gray-800">
+                {monthNames[selectedMonth]} {selectedYear}
+              </h2>
+              {!isCurrentMonth && (
+                <button
+                  onClick={goToCurrentMonth}
+                  className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
+                >
+                  Aujourd'hui
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={() => navigateMonth('next')}
+              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
 
           <div className="grid grid-cols-7 gap-2">
             {["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"].map((day) => (
@@ -399,18 +456,19 @@ export default function CotisationTracker() {
 
               const personne1Paid = personnes[0].paiements[dateKey];
               const personne2Paid = personnes[1].paiements[dateKey];
-              const bothPaid = personne1Paid && personne2Paid;
-              const nonePaid = !personne1Paid && !personne2Paid;
+              const personne3Paid = personnes[2].paiements[dateKey];
+              const allPaid = personne1Paid && personne2Paid && personne3Paid;
+              const nonePaid = !personne1Paid && !personne2Paid && !personne3Paid;
 
               let bgColor = "bg-gray-50";
               let textColor = "text-gray-700";
               let borderColor = "border-gray-200";
 
-              if (bothPaid && isFuture) {
+              if (allPaid && isFuture) {
                 bgColor = "bg-green-100";
                 textColor = "text-green-800";
                 borderColor = "border-green-300";
-              } else if (bothPaid) {
+              } else if (allPaid) {
                 bgColor = "bg-blue-100";
                 textColor = "text-blue-800";
                 borderColor = "border-blue-300";
